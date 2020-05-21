@@ -1,0 +1,18 @@
+version: '3'
+
+services:
+  mysql_interface:
+    build: .
+    user: ctf:ctf
+    ports:
+      - "8081:8081"
+    depends_on:
+      - mysqld
+  mysqld:
+    image: mysql:5.7
+    environment:
+      - MYSQL_RANDOM_ROOT_PASSWORD=yes
+      - MYSQL_USER=mysql_interface
+      - MYSQL_PASSWORD=b41fec9c1bcb194fb2028fa43dd74722
+    volumes:
+      - ./mysql_interface.sql:/docker-entrypoint-initdb.d/mysql_interface.sql:ro

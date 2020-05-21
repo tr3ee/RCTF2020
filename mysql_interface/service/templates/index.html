@@ -1,0 +1,119 @@
+<html>
+
+<head>
+	<title>MySQL Interface</title>
+	<link rel="stylesheet" href="/assets/bootstrap.min.css">
+	<script src="/assets/jquery-3.4.1.slim.min.js"></script>
+	<script src="/assets/bootstrap.min.js"></script>
+	<script src="/assets/hashes.min.js"></script>
+	<script>
+		var SHA256 = new Hashes.SHA256
+		function rand3() {
+			var guess = '';
+			for (let i = 0; i < 3; i++) {
+				guess += chars.charAt(Math.floor(Math.random() * chars.length))
+			}
+			return guess
+		}
+		prefix = 'RCTF2020_mysql_interface_'
+		chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+		$(document).ready(function(){
+			$("#helpbtn").click(function(){
+				for (let i = 0; i < chars.length; i++) {
+					for (let j = 0; j < chars.length; j++) {
+						for (let k = 0; k < chars.length; k++) {
+							let guess = chars[i]+chars[j]+chars[k]
+							if (SHA256.hex(prefix+guess) == {{.challenge}}) {
+								$("#pow").val(guess);
+								return true;
+							}
+						}
+					}
+				}
+				alert("sorry, counld not find the answer");
+				return false
+			});
+		});
+	</script>
+</head>
+
+<body >
+	<div class="container">
+		<h1>
+			MySQL Interface
+		</h1>
+		<figure class="highlight"><pre><code class="language-go" data-lang="go">
+	...
+
+	import (
+		"github.com/pingcap/parser"                     // v3.1.2-0.20200507065358-a5eade012146+incompatible
+		_ "github.com/pingcap/tidb/types/parser_driver" // v1.1.0-beta.0.20200520024639-0414aa53c912
+	)
+
+	var isForbidden = [256]bool{}
+
+	const forbidden = "\x00\t\n\v\f\r`~!@#$%^&*()_=[]{}\\|:;'\"/?<>,\xa0"
+	
+	func init() {
+		for i := 0; i < len(forbidden); i++ {
+			isForbidden[forbidden[i]] = true
+		}
+	}
+	
+	func allow(payload string) bool {
+		if len(payload) < 3 || len(payload) > 128 {
+			return false
+		}
+		for i := 0; i < len(payload); i++ {
+			if isForbidden[payload[i]] {
+				return false
+			}
+		}
+		if _, _, err := parser.New().Parse(payload, "", ""); err != nil {
+			return true
+		}
+		return false
+	}
+
+	// do query...
+	...
+		</code></pre></figure>
+		
+		<div class="">
+			
+			<form enctype="multipart/form-data" action="/" method="POST">
+				<div class="form-group">
+					<div class="input-group">
+						<div class="input-group-prepend">
+							<div class="input-group-text">SQL</div>
+						</div>
+						<input type="text" class="form-control" id="sql" name="sql" placeholder="select flag from flag" minlength="3" maxlength="128" required>
+					</div>
+				</div>
+
+				<div class="form-group">
+					<div class="input-group">
+						<div class="input-group-prepend">
+							<div class="input-group-text">sha256 ( {{.prefix}}</div>
+						</div>
+						<input type="text" class="form-control" id="pow" name="pow" minlength="3" maxlength="3" required>
+						<div class="input-group-append">
+							<div class="input-group-text"> ) = {{.challenge}}</div>
+						</div>
+						&nbsp;
+						<button type="button" id="helpbtn" class="btn btn-outline-success">help me!</button>
+					</div>
+					<small class="form-text text-muted text-center">
+						The challenge code will be updated every 60 seconds.
+					</small>
+				</div>
+
+				<button type="submit" class="btn btn-primary">Submit</button>
+			</form>
+			
+		</div>
+
+	</div>
+</body>
+
+</html>
