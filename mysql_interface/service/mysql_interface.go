@@ -11,6 +11,8 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/kataras/iris/v12"
+	"github.com/kataras/iris/v12/context"
+	"github.com/kataras/iris/v12/middleware/logger"
 	"github.com/pingcap/parser"                     // v3.1.2-0.20200507065358-a5eade012146+incompatible
 	_ "github.com/pingcap/tidb/types/parser_driver" // v1.1.0-beta.0.20200520024639-0414aa53c912
 )
@@ -54,6 +56,7 @@ func pow(ctx iris.Context) {
 
 func sqlHandler(ctx iris.Context) {
 	sql := ctx.FormValue("sql")
+	ctx.Values().Set("sql", sql)
 	if allow(sql) {
 		var result string
 		rows, err := db.Query(sql)
@@ -119,6 +122,21 @@ func main() {
 	defer db.Close()
 
 	app := iris.New()
+	logconf := logger.Config{
+		Status:             true,
+		IP:                 false,
+		Method:             true,
+		Path:               true,
+		MessageContextKeys: []string{"sql"},
+		MessageHeaderKeys:  []string{"X-Real-IP", "User-Agent"},
+	}
+	logconf.AddSkipper(func(ctx context.Context) bool {
+		if ctx.Path() == "/" {
+			return false
+		}
+		return true
+	})
+	app.Use(logger.New(logconf))
 	app.HandleDir("/assets", "./assets")
 	app.RegisterView(iris.HTML("./templates", ".html"))
 	app.Get("/", func(ctx iris.Context) {

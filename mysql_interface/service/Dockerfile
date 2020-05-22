@@ -30,4 +30,4 @@ RUN chown -R root:ctf /app && \
 
 EXPOSE 8081
 
-CMD ["/app/mysql_interface"]
+CMD ["sh", "-c", "/app/mysql_interface >> /app/log/access.log"]
